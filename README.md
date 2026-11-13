@@ -1,6 +1,6 @@
 # 🧠 Python 콘솔 퀴즈 게임
 
-말장난 문제를 즐기는 4지선다 콘솔 게임입니다. 현재 `state.json`에 퀴즈 10개가 들어 있으며, 문제를 추가하거나 삭제할 수도 있습니다. 최고 점수와 플레이 기록은 JSON 파일에 저장되어 다음 실행에도 이어집니다.
+말장난 문제를 즐기는 4지선다 콘솔 게임입니다. 현재 `state.json`에는 말장난 퀴즈 10개가 들어 있으며, 문제를 추가하거나 삭제할 수도 있습니다. 저장 파일이 없거나 복구할 수 없을 때 쓰는 기본 퀴즈는 Python 주제 5개입니다. 최고 점수와 플레이 기록은 JSON 파일에 저장되어 다음 실행에도 이어집니다.
 
 > Python 3.10+ · 외부 Python 패키지 없이 실행 · UTF-8 JSON 저장
 
@@ -88,7 +88,7 @@ Python 3.10 이상이 필요합니다. 별도의 패키지 설치는 필요하�
 | `points` | int | 정답 배점, 1 이상 (생략 시 10) |
 | `category` | string | 분류, 비어 있지 않은 값 (생략 시 `일반`) |
 | `best_score` | int | 최고 점수, 0 이상 |
-| `score_history` | list of object | 각 기록에 정수 `score`, `question_count` 포함 |
+| `score_history` | list of object | 각 기록에 문자열 `date`, 0 이상 정수 `score`, 0 이상 정수 `question_count` 포함 |
 
 `json.dump(..., ensure_ascii=False, indent=2)`에서 `ensure_ascii=False`는 한글을 그대로 읽을 수 있게 하고, `indent=2`는 파일을 사람이 읽고 비교하기 쉽게 합니다. 이전 형식처럼 `points`나 `category`가 없는 퀴즈도 기본값으로 읽습니다.
 

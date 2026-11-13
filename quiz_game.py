@@ -63,6 +63,7 @@ class QuizGame:
         history = data.get("score_history", [])
         if (not isinstance(history, list) or
                 any(not isinstance(item, dict) or
+                    not isinstance(item.get("date"), str) or not item["date"].strip() or
                     type(item.get("score")) is not int or item["score"] < 0 or
                     type(item.get("question_count")) is not int or item["question_count"] < 0
                     for item in history)):
