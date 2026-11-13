@@ -1,5 +1,6 @@
 import json
 import random
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -25,27 +26,48 @@ class QuizGame:
         self.load_state()
 
     def load_state(self):
+        backup = self.filename.with_suffix(self.filename.suffix + ".bak")
         try:
-            with self.filename.open("r", encoding="utf-8") as file:
-                data = json.load(file)
-            quizzes = [Quiz.from_dict(item) for item in data["quizzes"]]
-            if not quizzes:
-                raise ValueError("퀴즈 목록이 비어 있습니다.")
-            score = data.get("best_score", 0)
-            if type(score) is not int or score < 0:
-                raise ValueError("최고 점수 형식이 올바르지 않습니다.")
-            history = data.get("score_history", [])
-            if (not isinstance(history, list) or
-                    any(not isinstance(item, dict) or
-                        type(item.get("score")) is not int or item["score"] < 0 or
-                        type(item.get("question_count")) is not int or item["question_count"] < 0
-                        for item in history)):
-                raise ValueError("점수 기록 형식이 올바르지 않습니다.")
-            self.quizzes, self.best_score, self.score_history = quizzes, score, history
+            self._load_state_file(self.filename)
         except FileNotFoundError:
-            print("저장 파일이 없어 기본 퀴즈를 사용합니다.")
+            try:
+                self._load_state_file(backup)
+                print("저장 파일이 없어 백업에서 데이터를 복구했습니다.")
+                self.save_state()
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                print("저장 파일이 없어 기본 퀴즈를 사용합니다.")
         except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-            print(f"저장 파일을 읽지 못했습니다 ({error}). 기본 퀴즈로 시작합니다.")
+            print(f"저장 파일을 읽지 못했습니다 ({error}). 백업을 확인합니다.")
+            try:
+                self._load_state_file(backup)
+                print("백업 파일에서 데이터를 복구했습니다.")
+                self.save_state()
+            except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                print("사용 가능한 백업이 없어 기본 퀴즈로 시작합니다.")
+
+    def _load_state_file(self, path):
+        self.quizzes, self.best_score, self.score_history = self._read_state_file(path)
+
+    @staticmethod
+    def _read_state_file(path):
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+        if not isinstance(data, dict) or not isinstance(data.get("quizzes"), list):
+            raise ValueError("저장 데이터 구조가 올바르지 않습니다.")
+        quizzes = [Quiz.from_dict(item) for item in data["quizzes"]]
+        if not quizzes:
+            raise ValueError("퀴즈 목록이 비어 있습니다.")
+        score = data.get("best_score", 0)
+        if type(score) is not int or score < 0:
+            raise ValueError("최고 점수 형식이 올바르지 않습니다.")
+        history = data.get("score_history", [])
+        if (not isinstance(history, list) or
+                any(not isinstance(item, dict) or
+                    type(item.get("score")) is not int or item["score"] < 0 or
+                    type(item.get("question_count")) is not int or item["question_count"] < 0
+                    for item in history)):
+            raise ValueError("점수 기록 형식이 올바르지 않습니다.")
+        return quizzes, score, history
 
     def save_state(self):
         data = {"quizzes": [quiz.to_dict() for quiz in self.quizzes],
@@ -55,6 +77,16 @@ class QuizGame:
             temporary = self.filename.with_suffix(self.filename.suffix + ".tmp")
             with temporary.open("w", encoding="utf-8") as file:
                 json.dump(data, file, ensure_ascii=False, indent=2)
+            backup = self.filename.with_suffix(self.filename.suffix + ".bak")
+            backup_temporary = backup.with_suffix(backup.suffix + ".tmp")
+            if self.filename.exists():
+                try:
+                    self._read_state_file(self.filename)
+                except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+                    pass
+                else:
+                    shutil.copy2(self.filename, backup_temporary)
+                    backup_temporary.replace(backup)
             temporary.replace(self.filename)
         except OSError as error:
             print(f"저장에 실패했습니다: {error}")
